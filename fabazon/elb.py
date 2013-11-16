@@ -27,7 +27,7 @@ class LoadBalancer(object):
         # Wait for the instance to become healthy. We'll wait up to
         # 60 seconds (+ request times).
         for i in xrange(60):
-            healthy = self.is_instance_healthy(instance.id)
+            healthy = self.is_instance_healthy(instance)
 
             if healthy:
                 return True
