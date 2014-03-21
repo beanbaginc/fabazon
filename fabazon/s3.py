@@ -32,7 +32,8 @@ class S3Bucket(object):
         self.cnx = get_connection()
 
         if bucket_name not in _buckets:
-            _buckets[bucket_name] = self.cnx.get_bucket(bucket_name)
+            _buckets[bucket_name] = self.cnx.get_bucket(bucket_name,
+                                                        validate=False)
 
         self.bucket = _buckets[bucket_name]
 
