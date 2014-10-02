@@ -42,11 +42,12 @@ class S3Bucket(object):
         print 'Uploading %s to %s:%s...' % (local_file, self.name,
                                             dest_file)
         key = self.bucket.new_key(dest_file)
+        headers = {}
 
         if mimetype:
-            key.set_metadata('Content-Type', mimetype)
+            headers['Content-Type'] = mimetype
 
-        key.set_contents_from_filename(local_file)
+        key.set_contents_from_filename(local_file, headers=headers)
 
         if public:
             key.make_public()
