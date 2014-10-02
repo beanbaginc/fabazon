@@ -6,6 +6,7 @@ import urllib
 from email.utils import formatdate
 
 from boto.s3.connection import S3Connection
+from boto.s3.key import Key
 from boto.s3.prefix import Prefix
 from fabric.api import run
 
@@ -138,7 +139,21 @@ class S3Bucket(object):
             entry_name = entry.name[len(path):]
 
             if entry_name != 'index.html':
-                index.append('<a href="%s">%s</a>' % (entry_name, entry_name))
+                if isinstance(entry, Key):
+                    # Key has a 'md5' property, but it only works if you
+                    # have the file contents. However, the ETag is MD5-based
+                    # when not uploading as a multi-part upload. This is
+                    # documented in the S3 API and verified locally against
+                    # file contents by boto.
+                    #
+                    # Assuming this never changes (which would be a large
+                    # breaking change to S3), we're fine here.
+                    entry_md5 = entry.etag.strip('"')
+                    link_url = '%s#md5=%s' % (entry_name, entry_md5)
+                else:
+                    link_url = entry_name
+
+                index.append('<a href="%s">%s</a>' % (link_url, entry_name))
 
         index += [
             '  </pre>',
