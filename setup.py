@@ -46,8 +46,8 @@ setup(name=PACKAGE_NAME,
       maintainer='Christian Hammond',
       maintainer_email='christian@beanbaginc.com',
       install_requires=[
-          'boto',
-          'fabric',
+          'boto>=2.36',
+          'fabric>=1.8',
       ],
       classifiers=[
           'Development Status :: 3 - Alpha',
