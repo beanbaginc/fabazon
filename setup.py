@@ -47,6 +47,7 @@ setup(name=PACKAGE_NAME,
       maintainer_email='christian@beanbaginc.com',
       install_requires=[
           'boto>=2.36',
+          'boto3',
           'fabric>=1.8',
       ],
       classifiers=[
