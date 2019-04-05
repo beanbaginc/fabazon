@@ -265,7 +265,7 @@ class LoadBalancerV2(BaseLoadBalancer):
         """
         health_info = self._get_instance_health_info(instance)
 
-        return health_info['Reason'] != 'Target.NotRegistered'
+        return health_info.get('Reason') != 'Target.NotRegistered'
 
     def is_instance_healthy(self, instance):
         """Return whether an instance is healthy.
