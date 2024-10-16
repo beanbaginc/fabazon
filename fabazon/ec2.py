@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Optional, Sequence
+from typing import Any, Iterator, Mapping, Optional, Sequence
 
 import boto3
 
@@ -115,9 +115,9 @@ class EC2TagManager:
         self,
         *,
         running_only: bool = True,
-        tags: dict[str, str],
+        tags: Mapping[str, str],
     ) -> Sequence[str]:
-        """Returns the hostnames of all instances with the given tags.
+        """Return the hostnames of all instances with the given tags.
 
         This can be used to dynamically build Fabric host lists based on
         configured EC2 instances.
@@ -140,6 +140,69 @@ class EC2TagManager:
             The list of hostnames matching the criteria.
         """
         hostnames: list[str] = []
+
+        for instance in self._filter_instances(running_only=running_only,
+                                               tags=tags):
+            dns_name = instance.get('PublicDnsName')
+
+            if dns_name:
+                hostnames.append(dns_name)
+
+        return hostnames
+
+    def get_tagged_instance_ids(
+        self,
+        *,
+        running_only: bool = True,
+        tags: Mapping[str, str],
+    ) -> Sequence[str]:
+        """Return the instance IDs of all instances with the given tags.
+
+        This can be used to dynamically build Fabric host lists based on
+        configured EC2 instances when using SSM for remote access.
+
+        Version Added:
+            2.0
+
+        Args:
+            running_only (bool, optional):
+                Whether to return only running instances.
+
+            tags (dict, optional):
+                Any tags to filter by.
+
+        Returns:
+            list of str:
+            The list of instance IDs matching the criteria.
+        """
+        return [
+            instance['InstanceId']
+            for instance in self._filter_instances(running_only=running_only,
+                                                   tags=tags)
+        ]
+
+    def _filter_instances(
+        self,
+        *,
+        running_only: bool = True,
+        tags: Mapping[str, str],
+    ) -> Iterator[Mapping[str, Any]]:
+        """Iterate through all instances matching the given criteria.
+
+        Version Added:
+            2.0
+
+        Args:
+            running_only (bool, optional):
+                Whether to return only running instances.
+
+            tags (dict, optional):
+                Any tags to filter by.
+
+        Yields:
+            str:
+            Each instance matching the criteria.
+        """
         tag_filter: list[dict[str, Any]] = [
             {
                 'Name': f'tag:{key}',
@@ -155,9 +218,4 @@ class EC2TagManager:
                 for instance in reservation['Instances']:
                     if (not running_only or
                         instance['State']['Name'] == 'running'):
-                        dns_name = instance.get('PublicDnsName')
-
-                        if dns_name:
-                            hostnames.append(dns_name)
-
-        return hostnames
+                        yield instance

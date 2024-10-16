@@ -34,6 +34,9 @@ class EC2RoleDefs(dict[str, Optional[Sequence[str]]]):
     #: The associated EC2 tag manager.
     tag_manager: EC2TagManager
 
+    #: Whether to use SSM support.
+    use_ssm: bool
+
     def __init__(
         self,
         *,
@@ -41,10 +44,15 @@ class EC2RoleDefs(dict[str, Optional[Sequence[str]]]):
         roles: Sequence[str] = [],
         role_tag: str = 'role',
         require_tags: Mapping[str, str] = {},
+        use_ssm: bool = False,
     ) -> None:
         """Initialize the role definitions.
 
         This will pre-populate the dictionary, mapping all roles to ``None``.
+
+        Version Changed:
+            * Made all arguments keyword-only arguments.
+            * Added SSM support via the ``use_ssm`` argument.
 
         Args:
             regions (list of str):
@@ -58,6 +66,15 @@ class EC2RoleDefs(dict[str, Optional[Sequence[str]]]):
 
             require_tags (dict, optional):
                 The tags required for any matches.
+
+            use_ssm (bool, optional):
+                Whether to use SSM support.
+
+                If set, this dictionary will map to EC2 identifiers rather
+                than hostnames.
+
+                Version Added:
+                    2.0
         """
         super().__init__()
 
@@ -66,6 +83,7 @@ class EC2RoleDefs(dict[str, Optional[Sequence[str]]]):
         self.role_tag = role_tag
         self.require_tags = require_tags
         self.roles = roles
+        self.use_ssm = use_ssm
 
         for role in roles:
             self[role] = None
@@ -92,7 +110,11 @@ class EC2RoleDefs(dict[str, Optional[Sequence[str]]]):
             }
             tags.update(self.require_tags)
 
-            result = self.tag_manager.get_tagged_hostnames(tags=tags)
+            if self.use_ssm:
+                result = self.tag_manager.get_tagged_instance_ids(tags=tags)
+            else:
+                result = self.tag_manager.get_tagged_hostnames(tags=tags)
+
             self[role] = result
 
         return result
