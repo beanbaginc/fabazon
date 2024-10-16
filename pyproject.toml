@@ -1,0 +1,54 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+
+[project]
+name = 'fabazon'
+description = 'Utilities for interfacing with Amazon Web Services through Fabric.'
+authors = [
+    {name = 'Beanbag, Inc.', email = 'questions@beanbaginc.com'},
+]
+license = { text = 'MIT' }
+readme = 'README.md'
+requires-python = '>=3.8'
+dynamic = ['version']
+
+dependencies = [
+    'boto>=2.36',
+    'boto3',
+    'fabric<2.0',
+    'typing_extensions>=4.4',
+]
+
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Other Environment',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Topic :: Software Development',
+    'Topic :: Software Development :: Libraries',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+]
+
+
+[project.urls]
+homepage = 'https://github.com/beanbaginc/fabazon/'
+repository = 'https://github.com/beanbaginc/fabazon'
+
+
+[tool.setuptools.dynamic]
+version = { attr = 'fabazon.get_package_version' }
+
+
+[tool.setuptools.package-data]
+registries = ['py.typed']
