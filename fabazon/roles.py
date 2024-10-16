@@ -1,7 +1,13 @@
+"""EC2 role definition scanning."""
+
+from __future__ import annotations
+
+from typing import Mapping, Optional, Sequence
+
 from fabazon.ec2 import EC2TagManager
 
 
-class EC2RoleDefs(dict):
+class EC2RoleDefs(dict[str, Optional[Sequence[str]]]):
     """Represents a dictionary of Fabric roledefs for EC2 instances.
 
     This can be used instead of hard-coding a list of hostnames in a Fabric
@@ -11,10 +17,51 @@ class EC2RoleDefs(dict):
     By default, this will look up with 'role=<name>', but the 'role'
     attribute can be changed by passing a custom role_tag.
     """
-    def __init__(self, regions, roles=[], role_tag='role', require_tags={}):
-        super(EC2RoleDefs, self).__init__()
 
-        self.tag_manager = EC2TagManager(regions)
+    ######################
+    # Instance variables #
+    ######################
+
+    #: The tags to require for any matches.
+    require_tags: Mapping[str, str]
+
+    #: The tag name used to identify a role.
+    role_tag: str
+
+    #: The list of roles to scan.
+    roles: Sequence[str]
+
+    #: The associated EC2 tag manager.
+    tag_manager: EC2TagManager
+
+    def __init__(
+        self,
+        *,
+        regions: Sequence[str],
+        roles: Sequence[str] = [],
+        role_tag: str = 'role',
+        require_tags: Mapping[str, str] = {},
+    ) -> None:
+        """Initialize the role definitions.
+
+        This will pre-populate the dictionary, mapping all roles to ``None``.
+
+        Args:
+            regions (list of str):
+                The list of regions to scan.
+
+            roles (list of str, optional):
+                The list of roles to scan.
+
+            role_tag (str, optional):
+                The tag used to identify a role.
+
+            require_tags (dict, optional):
+                The tags required for any matches.
+        """
+        super().__init__()
+
+        self.tag_manager = EC2TagManager(regions=regions)
 
         self.role_tag = role_tag
         self.require_tags = require_tags
@@ -23,16 +70,29 @@ class EC2RoleDefs(dict):
         for role in roles:
             self[role] = None
 
-    def __getitem__(self, role):
-        result = super(EC2RoleDefs, self).__getitem__(role)
+    def __getitem__(
+        self,
+        role: str,
+    ) -> Optional[Sequence[str]]:
+        """Return a list of hostnames matching the role.
+
+        Args:
+            role (str):
+                The name of the role.
+
+        Returns:
+            list of str:
+            The list of hostnames matching the role, or ``None`` if not found.
+        """
+        result = super().__getitem__(role)
 
         if result is None:
-            tags = {
+            tags: dict[str, str] = {
                 self.role_tag: role,
             }
             tags.update(self.require_tags)
 
-            result = self.tag_manager.get_tagged_hostnames(**tags)
+            result = self.tag_manager.get_tagged_hostnames(tags=tags)
             self[role] = result
 
         return result

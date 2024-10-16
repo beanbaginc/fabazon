@@ -1,23 +1,29 @@
 """AWS load balancer utilities."""
 
-from __future__ import unicode_literals
+from __future__ import annotations
 
+import os
 import time
+from typing import Mapping, TYPE_CHECKING
 
 import boto3
-from boto.ec2.elb import ELBConnection
 from fabric.colors import red
-from six.moves import range
+
+if TYPE_CHECKING:
+    from fabazon.ec2 import EC2Instance
 
 
-class BaseLoadBalancer(object):
+class BaseLoadBalancer:
     """Base class for a load balancer.
 
     This provides some base functions for the different load balancers.
     It's otherwise a very thin base class.
     """
 
-    def wait_until_instance_healthy(self, instance):
+    def wait_until_instance_healthy(
+        self,
+        instance: EC2Instance,
+    ) -> bool:
         """Waits until the given instance is healthy before returning.
 
         This will wait up to 60 seconds for the instance to be marked as
@@ -40,10 +46,13 @@ class BaseLoadBalancer(object):
 
             time.sleep(1)
 
-        print red('Instance %s was not healthy after 60 seconds')
+        print(red('Instance %s was not healthy after 60 seconds'))
         return False
 
-    def wait_until_instance_removed(self, instance):
+    def wait_until_instance_removed(
+        self,
+        instance: EC2Instance,
+    ) -> bool:
         """Waits until the given instance is removed before returning.
 
         This will wait up to 60 seconds for the instance to no longer be
@@ -64,10 +73,13 @@ class BaseLoadBalancer(object):
 
             time.sleep(1)
 
-        print red('Instance %s was still registered after 60 seconds')
+        print(red('Instance %s was still registered after 60 seconds'))
         return False
 
-    def register_instance(self, instance):
+    def register_instance(
+        self,
+        instance: EC2Instance,
+    ) -> None:
         """Register an instance on the load balancer.
 
         Args:
@@ -76,7 +88,10 @@ class BaseLoadBalancer(object):
         """
         raise NotImplementedError
 
-    def unregister_instance(self, instance):
+    def unregister_instance(
+        self,
+        instance: EC2Instance,
+    ) -> None:
         """Unregister an instance from the load balancer.
 
         Args:
@@ -85,7 +100,10 @@ class BaseLoadBalancer(object):
         """
         raise NotImplementedError
 
-    def is_instance_registered(self, instance):
+    def is_instance_registered(
+        self,
+        instance: EC2Instance,
+    ) -> bool:
         """Return whether an instance is registered.
 
         Args:
@@ -99,7 +117,10 @@ class BaseLoadBalancer(object):
         """
         raise NotImplementedError
 
-    def is_instance_healthy(self, instance):
+    def is_instance_healthy(
+        self,
+        instance: EC2Instance,
+    ) -> bool:
         """Return whether an instance is healthy.
 
         Args:
@@ -123,21 +144,36 @@ class LoadBalancerV2(BaseLoadBalancer):
     If using the classic Elastic Load Balancer, use :py:class:`LoadBalancer`.
     """
 
-    def __init__(self, target_group_arn, region):
+    def __init__(
+        self,
+        *,
+        target_group_arn: str,
+        region: str,
+    ) -> None:
         """Initialize the instance.
 
+        Version Changed:
+            2.0:
+            ``target_group_arn`` and ``region`` are now keyword-only
+            arguments.
+
         Args:
-            target_group_arn (unicode):
+            target_group_arn (str):
                 The ARN of the target group on the load balancer.
 
-            region (unicode):
+            region (str):
                 The region the load balancer is in.
         """
         self.target_group_arn = target_group_arn
 
-        self._cnx = boto3.client('elbv2', region_name=region)
+        session = boto3.Session(
+            profile_name=os.environ.get('FABAZON_AWS_PROFILE'))
+        self._cnx = session.client('elbv2', region_name=region)
 
-    def register_instance(self, instance):
+    def register_instance(
+        self,
+        instance: EC2Instance,
+    ) -> None:
         """Register an instance on the load balancer.
 
         Args:
@@ -150,7 +186,10 @@ class LoadBalancerV2(BaseLoadBalancer):
                 'Id': instance.id,
             }])
 
-    def unregister_instance(self, instance):
+    def unregister_instance(
+        self,
+        instance: EC2Instance,
+    ) -> None:
         """Unregister an instance from the load balancer.
 
         Args:
@@ -163,7 +202,10 @@ class LoadBalancerV2(BaseLoadBalancer):
                 'Id': instance.id,
             }])
 
-    def is_instance_registered(self, instance):
+    def is_instance_registered(
+        self,
+        instance: EC2Instance,
+    ) -> bool:
         """Return whether an instance is registered.
 
         Args:
@@ -179,7 +221,10 @@ class LoadBalancerV2(BaseLoadBalancer):
 
         return health_info.get('Reason') != 'Target.NotRegistered'
 
-    def is_instance_healthy(self, instance):
+    def is_instance_healthy(
+        self,
+        instance: EC2Instance,
+    ) -> bool:
         """Return whether an instance is healthy.
 
         Args:
@@ -195,7 +240,10 @@ class LoadBalancerV2(BaseLoadBalancer):
 
         return health_info['State'] == 'healthy'
 
-    def _get_instance_health_info(self, instance):
+    def _get_instance_health_info(
+        self,
+        instance: EC2Instance,
+    ) -> Mapping[str, str]:
         """Return health information for an instance.
 
         Args:
